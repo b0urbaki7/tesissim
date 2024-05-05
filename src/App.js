@@ -1,16 +1,37 @@
 import logo from './logo.svg';
 import './App.css';
-import { Autocomplete, Icon, InputAdornment, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Autocomplete, Icon, InputAdornment, Tab, Table, TableBody, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import debounce from 'lodash.debounce';
-
+import { styled } from '@mui/material/styles';
+import TableCell, { tableCellClasses } from '@mui/material/TableCell';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Button from '@mui/material/Button';
+import { createClient } from '@supabase/supabase-js'
+import supabase from './supabaseClient'
 
 //import { config } from '../Constants';
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  [`&.${tableCellClasses.head}`]: {
+    backgroundColor: theme.palette.info.main,
+    color: theme.palette.common.white,
+  },
+  [`&.${tableCellClasses.body}`]: {
+    backgroundColor: theme.palette.primary.light,
+    fontSize: 14,
+  },
+}));
 
 const production = {
   url: 'https://b0urbaki7.github.io'
@@ -18,18 +39,20 @@ const production = {
 const development = {
   url: 'http://localhost:3000'
 };
+
+
+
 export const config = process.env.NODE_ENV === 'development' ? development : production;
 
 let respOpciones=[];
-let indiceSeleccionado=-1;
+//let indiceSeleccionado=-1;
 
-function Buscador(){
+function Buscador({onChange}){
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState([]);
   const [value, setValue] = React.useState(options[0]);
   const [index, setIndex] = useState(-3);
   const loading = open && options.length === 0;
-  const debouncedFetchOptionsRef = useRef();
   let opcionesPrueba=[];
   //let index=-2;
 
@@ -41,34 +64,22 @@ function Buscador(){
   });
 
   useEffect(() => {
-    let active = true;
-
-    if (!loading) {
-      return undefined;
-    }
-
-    const fetchOptions = async () => {
-      try{
-        await fetch(config.url+"/tesissim/titulosNDup.json").then(resp=>resp.json()).then((json)=>opcionesPrueba=json);
-        //Error en posicion 1253955
-        //En cada registro 2000 termina un json y empieza otro, lo cual causa el error
-        //await fetch(config.url+"/tesissim/matrizFinal.json").then(resp=>resp.json()).then((json)=>correlacionesPrueba=json);
-      }catch (error){
-        console.error('Error fetching data:', error);
-      }
-      if (active) {
-        setOptions([...opcionesPrueba]);
-        respOpciones=opcionesPrueba;
+    const fetchTesisTitulos = async () => {
+      try {
+        const { data, error } = await supabase.from('titulos').select();
+        if (error) {
+          console.error('Error fetching tesis titles:', error);
+        } else {
+          setOptions(data.map((tesis) => tesis.titulo));
+          respOpciones = data.map((tesis) => [tesis.id, tesis.titulo]);
+        }
+      } catch (error) {
+        console.error('Error fetching tesis titles:', error);
       }
     };
-
-    debouncedFetchOptionsRef.current=debounce(fetchOptions, 300);
-
-    return () => {
-      active = false;
-      debouncedFetchOptionsRef.current.cancel();
-    };
-  }, [loading]);
+  
+    fetchTesisTitulos();
+  }, []);
 
   React.useEffect(() => {
     if (!open) {
@@ -76,17 +87,28 @@ function Buscador(){
     }
   }, [open]);
 
-  const handleInputChange = (event, value) => {
-    //setIsLoading(true);
-    // Call the debounced fetchOptions function with the input value
-    debouncedFetchOptionsRef.current(value);
+  const handleInputChange = async (event, newValue) => {
+    const value = newValue ?? event.target.value; // Use newValue if provided, otherwise use event.target.value
+    try {
+      const { data, error } = await supabase
+        .from('titulos')
+        .select()
+        .ilike('titulo', `%${value}%`);
+  
+      if (error) {
+        console.error('Error fetching tesis titles:', error);
+      } else {
+        setOptions(data.map((tesis) => tesis.titulo));
+        respOpciones = data.map((tesis) => [tesis.id, tesis.titulo]);
+      }
+    } catch (error) {
+      console.error('Error fetching tesis titles:', error);
+    }
   };
   
   return(
     
     <div>
-      <div>{`value: ${value !== null ? `'${value}'` : 'null'}`}</div>
-      <div>{`msg: ${index !== null ? `'${index}'` : 'null'}`}</div>
       <Autocomplete 
         //freeSolo 
         componentsProps={{ popper: { style: { width: 700 } } }}
@@ -100,15 +122,22 @@ function Buscador(){
         options={options}
         loading={loading}
         //options={opcionesPrueba.map((option) => option)}
-        renderInput={(params) => <TextField {...params} label="Seleccione una tesis" onChange={handleInputChange} sx={{ width: 700 }}/>}
+        renderInput={(params) => <TextField {...params} label="Seleccione una tesis" onChange={(event, newValue) => {
+          setValue(newValue);
+          const selectedTesis = respOpciones.find(([_, titulo]) => titulo === newValue);
+          const selectedIndex = selectedTesis ? selectedTesis[0] : -1;
+          setIndex(selectedIndex);
+          onChange(event, selectedIndex);
+          handleInputChange(event, newValue); // Pass both event and newValue
+        }} sx={{ width: 700 }}/>}
         filterOptions={filterOptions}
         //filterOptions={(x) => x}
         onChange={(event, newValue) => {
           setValue(newValue);
-          //index=respOpciones.findIndex(x=>x==newValue);
-          setIndex(respOpciones.findIndex(x=>x==newValue));
-          indiceSeleccionado=respOpciones.findIndex(x=>x==newValue);
-          //console.log(index);
+          const selectedTesis = respOpciones.find(([, titulo]) => titulo === newValue);
+          const selectedIndex = selectedTesis ? selectedTesis[0] : -1;
+          setIndex(selectedIndex);
+          onChange(event, selectedIndex);
         }}
       ></Autocomplete>
     </div>
@@ -117,8 +146,9 @@ function Buscador(){
 
 
 
-function Tabla(){
+function Tabla({indiceSeleccionado}){
   const [correlacionesPrueba, setCorrelacionesPrueba] = useState({});
+  const [sortedData, setSortedData] = useState([]);
 
   useEffect(() => {
     const fetchCorrelationData = async () => {
@@ -134,9 +164,42 @@ function Tabla(){
     fetchCorrelationData();
   }, [config.url]);
 
+  /*useEffect(() => {
+    const fetchCorrelationData = async () => {
+      try {
+        const { data, error } = await supabase.from('matriz').select();
+        if (error) {
+          console.error('Error fetching tesis matriz:', error);
+        } else {
+          setCorrelacionesPrueba(data.map((tesis) => tesis.titulo));
+        }
+      } catch (error) {
+        console.error('Error fetching tesis matriz:', error);
+      }
+    };
+  
+    fetchTesisTitulos();
+  }, []);*/
+
+  useEffect(() => {
+    const selectedEntry = indiceSeleccionado !== null ? correlacionesPrueba[indiceSeleccionado] : {};
+    const dataArray = selectedEntry ? Object.entries(selectedEntry) : [];
+
+    const sortedDataArray = dataArray.sort((a, b) => {
+      return b[1] - a[1];
+    });
+
+    setSortedData(sortedDataArray);
+  }, [indiceSeleccionado, correlacionesPrueba]);
+
+  
+
   if ((Object.keys(correlacionesPrueba).length === 0)){
     return <div>Loading...</div>;
   }
+  console.log(indiceSeleccionado);
+  const selectedEntry = indiceSeleccionado !== null ? correlacionesPrueba[indiceSeleccionado] : {};
+
 
   return (
     <TableContainer>
@@ -148,12 +211,19 @@ function Tabla(){
           </TableRow>
         </TableHead>
         <TableBody>
-          {Object.entries(correlacionesPrueba[indiceSeleccionado]).map(([titulo, correlacion], index) => (
-            <TableRow key={index}>
-              <TableCell>{respOpciones[titulo]}</TableCell>
-              <TableCell align='center'>{correlacion}</TableCell>
+          {sortedData.length > 0 ? (
+            sortedData.map(([titulo, correlacion], index) => (
+              <TableRow key={index}>
+                <TableCell><Button>{respOpciones[titulo]}</Button></TableCell>
+                
+                <TableCell align='center'>{correlacion}</TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={2}>No hay información disponible</TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </TableContainer>
@@ -161,22 +231,28 @@ function Tabla(){
 }
 
 
-
 function App() {  
+
+  const [indiceSeleccionado, setIndiceSeleccionado] = useState(null);
+
+  const handleAutoCompleteChange = (event, newValue) => {
+    setIndiceSeleccionado(newValue);
+    console.log(newValue);
+  };
+
   return (
+    <ThemeProvider theme={darkTheme}>
     <div className="App">
       <header className="App-header">
         <Typography variant='h1'>TesisSim</Typography>
-        <Typography variant='subtitle1'>Find related theses (UNAM)</Typography>
-        <Buscador/>
-        
-        <p>Running in {process.env.NODE_ENV}.</p>
-        <p>La variable es {config.url+"/tesissim/titulosNDup.json"}</p>
-        <Tabla/>
+        <Typography variant='subtitle1'>Encuentra tesis similares (UNAM)</Typography>
+        <Buscador onChange={handleAutoCompleteChange}/>
+        <Tabla indiceSeleccionado={indiceSeleccionado}/>
       </header>
       
       
     </div>
+    </ThemeProvider>
   );
 }
 

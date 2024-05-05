@@ -4,6 +4,7 @@
   "homepage": "https://b0urbaki7.github.io/tesissim",
   "private": true,
   "dependencies": {
+    "@supabase/supabase-js": "^2.43.1",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
