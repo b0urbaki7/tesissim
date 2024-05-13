@@ -150,46 +150,43 @@ function Tabla({indiceSeleccionado}){
   const [correlacionesPrueba, setCorrelacionesPrueba] = useState({});
   const [sortedData, setSortedData] = useState([]);
 
+
   useEffect(() => {
+    console.log("data");
     const fetchCorrelationData = async () => {
       try {
-        const response = await fetch(`${config.url}/tesissim/matrizFinal.json`);
-        const json = await response.json();
-        setCorrelacionesPrueba(json);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    fetchCorrelationData();
-  }, [config.url]);
-
-  /*useEffect(() => {
-    const fetchCorrelationData = async () => {
-      try {
-        const { data, error } = await supabase.from('matriz').select();
+        const { data, error } = await supabase.from('matriz').select('titulos:id (titulo),rel1 (titulo),rel2 (titulo),rel3 (titulo),rel4 (titulo),rel5 (titulo),rel6 (titulo),rel7 (titulo),rel8 (titulo),rel9 (titulo),rel10 (titulo)').eq('id',indiceSeleccionado);
         if (error) {
           console.error('Error fetching tesis matriz:', error);
         } else {
-          setCorrelacionesPrueba(data.map((tesis) => tesis.titulo));
+          console.log(data[0]);
+          console.log(data[0]["rel1"]);
+          //setCorrelacionesPrueba(data.map((tesis) => tesis.titulo));
+          setCorrelacionesPrueba(data[0] || {});
         }
       } catch (error) {
         console.error('Error fetching tesis matriz:', error);
       }
     };
-  
-    fetchTesisTitulos();
-  }, []);*/
+    if (indiceSeleccionado !== null) {
+      fetchCorrelationData();
+    }
+  }, [indiceSeleccionado]);
 
   useEffect(() => {
-    const selectedEntry = indiceSeleccionado !== null ? correlacionesPrueba[indiceSeleccionado] : {};
-    const dataArray = selectedEntry ? Object.entries(selectedEntry) : [];
+    if (indiceSeleccionado !== null && Object.keys(correlacionesPrueba).length > 0) {
+      const selectedEntry = correlacionesPrueba;
+      //const dataArray = Object.entries(selectedEntry);
 
-    const sortedDataArray = dataArray.sort((a, b) => {
-      return b[1] - a[1];
-    });
-
-    setSortedData(sortedDataArray);
+  
+      /*const sortedDataArray = dataArray.sort((a, b) => {
+        return b[1] - a[1];
+      });*/
+  
+      setSortedData(correlacionesPrueba);
+    } else {
+      setSortedData([]);
+    }
   }, [indiceSeleccionado, correlacionesPrueba]);
 
   
@@ -211,20 +208,18 @@ function Tabla({indiceSeleccionado}){
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedData.length > 0 ? (
-            sortedData.map(([titulo, correlacion], index) => (
-              <TableRow key={index}>
-                <TableCell><Button>{respOpciones[titulo]}</Button></TableCell>
-                
-                <TableCell align='center'>{correlacion}</TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={2}>No hay información disponible</TableCell>
-            </TableRow>
-          )}
-        </TableBody>
+  {Object.keys(correlacionesPrueba).length > 0 ? (
+    Object.entries(correlacionesPrueba).map(([key, value], index) => (
+      <TableRow key={index}>
+        <TableCell>{value.titulo}</TableCell>
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell>No hay información disponible</TableCell>
+    </TableRow>
+  )}
+</TableBody>
       </Table>
     </TableContainer>
   );
