@@ -1,16 +1,18 @@
 {
   "files": {
     "main.css": "/tesissim/static/css/main.a1f2f4aa.css",
-    "main.js": "/tesissim/static/js/main.019de185.js",
+    "main.js": "/tesissim/static/js/main.0a690696.js",
+    "static/js/289.79aed005.chunk.js": "/tesissim/static/js/289.79aed005.chunk.js",
     "static/js/787.c87919a4.chunk.js": "/tesissim/static/js/787.c87919a4.chunk.js",
     "static/media/logo.svg": "/tesissim/static/media/logo.6ce24c58023cc2f8fd88fe9d219db6c6.svg",
     "index.html": "/tesissim/index.html",
     "main.a1f2f4aa.css.map": "/tesissim/static/css/main.a1f2f4aa.css.map",
-    "main.019de185.js.map": "/tesissim/static/js/main.019de185.js.map",
+    "main.0a690696.js.map": "/tesissim/static/js/main.0a690696.js.map",
+    "289.79aed005.chunk.js.map": "/tesissim/static/js/289.79aed005.chunk.js.map",
     "787.c87919a4.chunk.js.map": "/tesissim/static/js/787.c87919a4.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.a1f2f4aa.css",
-    "static/js/main.019de185.js"
+    "static/js/main.0a690696.js"
   ]
 }
